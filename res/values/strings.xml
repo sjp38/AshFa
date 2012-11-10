@@ -3,5 +3,16 @@
 
     <string name="description">Now, you can use Ash direct control feature.</string>
     <string name="app_name">AGI</string>
+    <string name="touchpad_interface_name">PC controller</string>
+    <string name="touch_to_move_mouse">Touch to move mouse</string>
+    <string name="mouse_left_button">Left click</string>
+    <string name="mouse_right_button">Right click</string>
+    <string name="connection_setting">Connection setting</string>
+    <string name="connect_to">Connect to</string>
+    <string name="connect">Connect</string>
+    <string name="cancel">Cancel</string>
+    <string name="connected">Connected</string>
+    <string name="not_connected">Not connected</string>
+    <string name="connected_to">Connected to </string>
 
 </resources>

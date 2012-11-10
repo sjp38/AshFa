@@ -1,5 +1,5 @@
 
-package org.drykiss.android.app.agi;
+package org.drykiss.android.app.ashfa;
 
 import android.app.Service;
 import android.content.Context;
@@ -23,7 +23,9 @@ import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class AgiService extends Service {
+import org.drykiss.android.app.ashfa.R;
+
+public class AshFAService extends Service {
     private static final String TAG = "AgiService";
 
     private static final int CURSOR_DISPLAY_TIMEOUT = 5000;
@@ -99,12 +101,9 @@ public class AgiService extends Service {
 
     private void hideCursor() {
         mHandler.post(new Runnable() {
-
-            @Override
             public void run() {
                 mCursorView.setVisibility(View.INVISIBLE);
             }
-
         });
     }
 
@@ -133,7 +132,6 @@ public class AgiService extends Service {
         // This will remove all callbacks.
         mHandler.removeMessages(0);
         mHandler.postDelayed(new Runnable() {
-            @Override
             public void run() {
                 hideCursor();
             }
@@ -142,8 +140,6 @@ public class AgiService extends Service {
 
     private void showCursor(final int x, final int y, final boolean isDown) {
         mHandler.post(new Runnable() {
-
-            @Override
             public void run() {
                 doShowCursor(x, y, isDown);
             }
