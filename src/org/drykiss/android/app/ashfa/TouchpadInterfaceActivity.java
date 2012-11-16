@@ -1,23 +1,26 @@
 
 package org.drykiss.android.app.ashfa;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.net.Socket;
-
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.Socket;
 
 public class TouchpadInterfaceActivity extends Activity {
     private static final String TAG = "AshFA_touchpadinterface";
@@ -31,6 +34,9 @@ public class TouchpadInterfaceActivity extends Activity {
     private BufferedWriter mBufferedWriter = null;
     private boolean mConnected = false;
     private String mPeerAddress = "";
+
+    PowerManager.WakeLock mWakeLock = null;
+    WifiManager.WifiLock mWifiLock = null;
 
     private TextView mConnectionStateTextView = null;
 
@@ -121,10 +127,11 @@ public class TouchpadInterfaceActivity extends Activity {
                         } else if (mCurrentY > 100) {
                             mCurrentY = 100;
                         }
-
-                        final String command = "move_mouse " + mCurrentX + " " + mCurrentY
+                        String command = "move_mouse " + mCurrentX + " " + mCurrentY
                                 + " True True " + END_OF_MSG;
-                        // Log.d(TAG, command);
+                        if (event.getPointerCount() > 1) {
+                            command = "wheel_mouse " + deltaY + " True" + END_OF_MSG;
+                        }
                         sendCmdToPeer(command);
                         return true;
                     case MotionEvent.ACTION_UP:
@@ -192,6 +199,33 @@ public class TouchpadInterfaceActivity extends Activity {
                 mLeftButtonListener);
         findViewById(R.id.rightClickButton).setOnTouchListener(
                 mRightButtonListener);
+
+        if (mWakeLock == null) {
+            PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            mWakeLock = powerManager.newWakeLock(PowerManager.FULL_WAKE_LOCK, TAG);
+            mWakeLock.acquire();
+        }
+
+        if (mWifiLock == null) {
+            WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+            mWifiLock = wifiManager.createWifiLock(TAG);
+            mWifiLock.setReferenceCounted(true);
+            mWifiLock.acquire();
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        if (mWifiLock != null) {
+            mWifiLock.release();
+            mWifiLock = null;
+        }
+        if (mWakeLock != null) {
+            mWakeLock.release();
+            mWakeLock = null;
+        }
+        super.onDestroy();
+
     }
 
     private void updateConnectionState() {
