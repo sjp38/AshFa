@@ -5,6 +5,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.PixelFormat;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
@@ -57,10 +58,14 @@ public class AshFAService extends Service {
         try {
             mWindowManagerImplClass = Class
                     .forName("android.view.WindowManagerImpl");
-            mGetDefaultWM = mWindowManagerImplClass
-                    .getDeclaredMethod("getDefault");
-            mGetDefaultWM.setAccessible(true);
-            mWM = mGetDefaultWM.invoke(mWindowManagerImplClass);
+            if (Build.VERSION.SDK_INT < 17) {   // 17 is Build.VERSION_CODES.JELLY_BEAN_MR1
+                mGetDefaultWM = mWindowManagerImplClass
+                        .getDeclaredMethod("getDefault");
+                mGetDefaultWM.setAccessible(true);
+                mWM = mGetDefaultWM.invoke(mWindowManagerImplClass);
+            } else {
+                mWM = (WindowManager)getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
+            }
 
             mAddView = mWindowManagerImplClass.getDeclaredMethod("addView",
                     View.class, ViewGroup.LayoutParams.class);
@@ -167,7 +172,7 @@ public class AshFAService extends Service {
                 while (true) {
                     Log.d(TAG, "waiting...");
                     mAcceptSocket = mServerSocket.accept();
-                    Log.d(TAG, "accepted!");
+                    Log.d(TAG, "accepted! mClientSocket : " + mClientSocket + ", mAcceptSocket : " + mAcceptSocket);
 
                     if (mClientSocket != null) {
                         Log.d(TAG, "Disconnect already existing connection.");
