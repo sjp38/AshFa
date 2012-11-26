@@ -2,7 +2,7 @@
 <resources>
 
     <string name="description">Now, you can use Ash direct control feature.</string>
-    <string name="app_name">AGI</string>
+    <string name="app_name">AshFa</string>
     <string name="touchpad_interface_name">PC controller</string>
     <string name="touch_to_move_mouse">Touch to move mouse</string>
     <string name="mouse_left_button">Left click</string>

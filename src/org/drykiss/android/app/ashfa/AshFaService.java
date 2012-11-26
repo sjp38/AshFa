@@ -26,7 +26,7 @@ import java.net.Socket;
 
 import org.drykiss.android.app.ashfa.R;
 
-public class AshFAService extends Service {
+public class AshFaService extends Service {
     private static final String TAG = "AgiService";
 
     private static final int CURSOR_DISPLAY_TIMEOUT = 5000;
