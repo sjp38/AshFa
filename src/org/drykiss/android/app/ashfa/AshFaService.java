@@ -23,6 +23,7 @@ import java.net.Socket;
 
 public class AshFaService extends Service {
     private static final String TAG = "AgiService";
+    private static final boolean DEBUG_LOG = false;
 
     private static final int CURSOR_DISPLAY_TIMEOUT = 5000;
     ImageView mCursorView;
@@ -88,7 +89,9 @@ public class AshFaService extends Service {
     }
 
     private void doShowCursor(final int x, final int y, final boolean isDown) {
-        Log.d(TAG, "show cursor at " + x + ", " + y + isDown);
+        if (DEBUG_LOG) {
+            Log.d(TAG, "show cursor at " + x + ", " + y + isDown);
+        }
         mCursorView.setImageResource(isDown ? R.drawable.cursor_pressed
                 : R.drawable.cursor);
         mCursorView.setVisibility(View.VISIBLE);
@@ -190,7 +193,9 @@ public class AshFaService extends Service {
                             return;
                         }
                         packet = String.valueOf(packetBuffer, 0, receivedCount);
-                        Log.d(TAG, "received : " + packet);
+                        if (DEBUG_LOG) {
+                            Log.d(TAG, "received : " + packet);
+                        }
 
                         int length = 0;
                         try {
@@ -209,7 +214,9 @@ public class AshFaService extends Service {
                             return;
                         }
                         packet = String.valueOf(packetBuffer, 0, receivedCount);
-                        Log.d(TAG, "received : " + packet);
+                        if (DEBUG_LOG) {
+                            Log.d(TAG, "received : " + packet);
+                        }
 
                         String[] splitted = packet.split(" ");
                         for (int i = 0; i < splitted.length; i++) {
