@@ -5,13 +5,11 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.PixelFormat;
-import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.Display;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.ImageView;
 
@@ -20,22 +18,15 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
-
-import org.drykiss.android.app.ashfa.R;
 
 public class AshFaService extends Service {
     private static final String TAG = "AgiService";
 
     private static final int CURSOR_DISPLAY_TIMEOUT = 5000;
-    Class mWindowManagerImplClass;
-    Object mWM;
-    Method mGetDefaultWM;
-    Method mAddView;
-    Method mUpdateLayout;
     ImageView mCursorView;
+    WindowManager mWindowManager;
     WindowManager.LayoutParams mParams;
     Display mCurrentDisplay;
     final Handler mHandler = new Handler();
@@ -55,53 +46,27 @@ public class AshFaService extends Service {
     }
 
     private void init() {
-        try {
-            mWindowManagerImplClass = Class
-                    .forName("android.view.WindowManagerImpl");
-            if (Build.VERSION.SDK_INT < 17) {   // 17 is Build.VERSION_CODES.JELLY_BEAN_MR1
-                mGetDefaultWM = mWindowManagerImplClass
-                        .getDeclaredMethod("getDefault");
-                mGetDefaultWM.setAccessible(true);
-                mWM = mGetDefaultWM.invoke(mWindowManagerImplClass);
-            } else {
-                mWM = (WindowManager)getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
-            }
+        WindowManager windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+        mWindowManager = windowManager;
 
-            mAddView = mWindowManagerImplClass.getDeclaredMethod("addView",
-                    View.class, ViewGroup.LayoutParams.class);
-            mAddView.setAccessible(true);
+        ImageView cursorView = new ImageView(this);
+        cursorView.setImageResource(R.drawable.cursor_pressed);
+        mCursorView = cursorView;
 
-            mUpdateLayout = mWindowManagerImplClass.getDeclaredMethod(
-                    "updateViewLayout", View.class,
-                    ViewGroup.LayoutParams.class);
-            mUpdateLayout.setAccessible(true);
+        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.TYPE_SYSTEM_ALERT,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                        | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+                        | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
+                PixelFormat.TRANSLUCENT);
+        mParams = params;
+        windowManager.addView(mCursorView, params);
+        hideCursor();
 
-            ImageView cursorView = new ImageView(this);
-            cursorView.setImageResource(R.drawable.cursor_pressed);
-            mCursorView = cursorView;
-
-            final WindowManager.LayoutParams params = new WindowManager.LayoutParams();
-            params.height = WindowManager.LayoutParams.WRAP_CONTENT;
-            params.width = WindowManager.LayoutParams.WRAP_CONTENT;
-            params.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                    | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-                    | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON;
-            params.format = PixelFormat.TRANSLUCENT;
-            // params.windowAnimations =
-            // com.android.internal.R.style.Animation_Toast;
-            params.type = WindowManager.LayoutParams.TYPE_TOAST;
-            params.setTitle("Holy grail cursor");
-            mParams = params;
-
-            mAddView.invoke(mWM, mCursorView, mParams);
-            hideCursor();
-
-            mCurrentDisplay = ((WindowManager) getSystemService(Context.WINDOW_SERVICE))
-                    .getDefaultDisplay();
-
-        } catch (Throwable e) {
-            Log.e(TAG, "Fail to get hidden grail!!", e);
-        }
+        mCurrentDisplay = ((WindowManager) getSystemService(Context.WINDOW_SERVICE))
+                .getDefaultDisplay();
     }
 
     private void hideCursor() {
@@ -129,11 +94,7 @@ public class AshFaService extends Service {
         mCursorView.setVisibility(View.VISIBLE);
         mParams.x = calcAxis(x, true);
         mParams.y = calcAxis(y, false);
-        try {
-            mUpdateLayout.invoke(mWM, mCursorView, mParams);
-        } catch (Throwable e) {
-            Log.e(TAG, "Fail to get show cursor at " + x + ", " + y + "!!", e);
-        }
+        mWindowManager.updateViewLayout(mCursorView, mParams);
         // This will remove all callbacks.
         mHandler.removeMessages(0);
         mHandler.postDelayed(new Runnable() {
@@ -172,7 +133,8 @@ public class AshFaService extends Service {
                 while (true) {
                     Log.d(TAG, "waiting...");
                     mAcceptSocket = mServerSocket.accept();
-                    Log.d(TAG, "accepted! mClientSocket : " + mClientSocket + ", mAcceptSocket : " + mAcceptSocket);
+                    Log.d(TAG, "accepted! mClientSocket : " + mClientSocket + ", mAcceptSocket : "
+                            + mAcceptSocket);
 
                     if (mClientSocket != null) {
                         Log.d(TAG, "Disconnect already existing connection.");
