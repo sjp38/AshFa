@@ -12,14 +12,17 @@ import android.view.Display;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
 
 public class AshFaService extends Service {
     private static final String TAG = "AgiService";
@@ -31,6 +34,9 @@ public class AshFaService extends Service {
     WindowManager.LayoutParams mParams;
     Display mCurrentDisplay;
     final Handler mHandler = new Handler();
+    Socket monkeySocket;
+    PrintWriter monkeyWriter;
+    BufferedReader monkeyReader;
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -44,6 +50,43 @@ public class AshFaService extends Service {
 
         init();
         startServer();
+        try {
+            monkeySocket = new Socket("localhost", 12345);
+            monkeyWriter = new PrintWriter(monkeySocket.getOutputStream(), true);
+            monkeyReader = new BufferedReader(new InputStreamReader(
+                    monkeySocket.getInputStream()));
+            Log.i(TAG, "Success to connect monkey server!!!");
+        } catch (UnknownHostException e) {
+            Log.e(TAG, "Unknow host while connect monkey server!", e);
+        } catch (IOException e) {
+            Log.e(TAG, "IO error while connect monkey server!", e);
+        }
+
+        mHandler.postDelayed(new Runnable() {
+            public void run() {
+                Toast.makeText(getApplicationContext(), "press HOME!!!",
+                        Toast.LENGTH_LONG).show();
+                press("KEYCODE_HOME", "down");
+            }
+        }, 3000);
+
+        mHandler.postDelayed(new Runnable() {
+            public void run() {
+                press("KEYCODE_HOME", "up");
+            }
+        }, 3100);
+    }
+
+    @Override
+    public void onDestroy() {
+        try {
+            monkeyWriter.close();
+            monkeyReader.close();
+            monkeySocket.close();
+            Log.e(TAG, "Closed connection to monkey server.");
+        } catch (IOException e) {
+            Log.e(TAG, "Fail to close connections!", e);
+        }
     }
 
     private void init() {
@@ -115,6 +158,25 @@ public class AshFaService extends Service {
         });
     }
 
+    private void press(final String keyCode, final String type) {
+        if (monkeySocket.isConnected()) {
+            String command = "press " + keyCode;
+            // String command = "key " + type + " " + keyCode;
+            Log.v(TAG, "do key control: " + command);
+            monkeyWriter.println(command);
+        }
+    }
+
+    private void touchScreen(final int x, final int y, final String type) {
+        if (monkeySocket.isConnected()) {
+            String command = "touch " + type + " " + x + " " + y;
+            Log.v(TAG, "send command to monkey: " + command);
+            monkeyWriter.println(command);
+        } else {
+            Log.i(TAG, "monkey is not connected!");
+        }
+    }
+
     private void startServer() {
         Thread thread = new HolyGrailServerThread();
         thread.start();
@@ -136,8 +198,8 @@ public class AshFaService extends Service {
                 while (true) {
                     Log.d(TAG, "waiting...");
                     mAcceptSocket = mServerSocket.accept();
-                    Log.d(TAG, "accepted! mClientSocket : " + mClientSocket + ", mAcceptSocket : "
-                            + mAcceptSocket);
+                    Log.d(TAG, "accepted! mClientSocket : " + mClientSocket
+                            + ", mAcceptSocket : " + mAcceptSocket);
 
                     if (mClientSocket != null) {
                         Log.d(TAG, "Disconnect already existing connection.");
@@ -154,6 +216,10 @@ public class AshFaService extends Service {
 
         // HIDE
         // SHOW <x> <y> [pressed]
+        // PRESS <DOWN | UP> <keycode>
+        // TOUCH <x> <y> <type>
+        // GETPROP <property name>
+        // GETSYSTEMPROP <system property name>
         private class ClientThread extends Thread {
             static final int LENGTH_HEADER_SIZE = 3;
             static final int BUFFER_SIZE = 256;
@@ -229,6 +295,11 @@ public class AshFaService extends Service {
                             boolean isPressed = splitted.length >= 4
                                     && "pressed".equals(splitted[3]);
                             showCursor(x, y, isPressed);
+                        } else if ("TOUCH".equals(splitted[0])) {
+                            final int x = Integer.valueOf(splitted[1]);
+                            final int y = Integer.valueOf(splitted[2]);
+                            final String type = splitted[3];
+                            touchScreen(x, y, type);
                         } else {
                             Log.e(TAG, "Invalid packet!" + packet + splitted);
                         }
